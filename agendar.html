@@ -29,12 +29,15 @@ textarea{min-height:76px;resize:vertical}
 .sum{background:var(--tint);border-radius:14px;padding:12px 14px;display:none}
 .err{color:var(--acc2);font-size:14px}
 .pri{border:0;border-radius:16px;padding:15px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font:600 16px inherit;font-family:inherit;cursor:pointer}
+.sec2{display:block;text-align:center;text-decoration:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:13px;font:500 15px inherit;font-family:inherit;cursor:pointer}
 .mut{color:var(--mut);font-size:12.5px}.empty{text-align:center;color:var(--mut);padding:24px 10px}
 </style>
 </head>
 <body>
 <main id="m"></main>
 <script>
+const FB_KEY='COLE_AQUI_A_API_KEY',FB_PID='COLE_AQUI_O_PROJECT_ID';
+const FSU=`https://firestore.googleapis.com/v1/projects/${FB_PID}/databases/(default)/documents`;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const td=iso(new Date());
@@ -42,35 +45,90 @@ const b64d=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,'+').repl
 const wdn=k=>new Date(k+'T00:00').toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
 const wdl=k=>new Date(k+'T00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
 const fmtPh=v=>{let d=String(v||'').replace(/\D/g,'').slice(0,11);if(d.length<=2)return d?'('+d:'';if(d.length<=6)return`(${d.slice(0,2)}) ${d.slice(2)}`;if(d.length<=10)return`(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return`(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`};
-let CB=null,cbd='',cbt='';
+const fv=v=>typeof v==='string'?{stringValue:v}:typeof v==='number'?{integerValue:String(v)}:{stringValue:String(v)};
+const fsd=o=>({fields:Object.fromEntries(Object.entries(o).map(([k,x])=>[k,fv(x)]))});
+const uv=f=>f.stringValue!==undefined?f.stringValue:f.integerValue!==undefined?+f.integerValue:f.booleanValue!==undefined?f.booleanValue:f.arrayValue?(f.arrayValue.values||[]).map(uv):null;
+const ud=d=>Object.fromEntries(Object.entries(d.fields||{}).map(([k,x])=>[k,uv(x)]));
+const kd=k=>k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8),kt=k=>k.slice(9,11)+':'+k.slice(11,13);
+const q=p=>FSU+p+(p.includes('?')?'&':'?')+'key='+FB_KEY;
+async function fget(p){const r=await fetch(q(p));if(r.status===404)return null;const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||'erro');return j}
+async function fsend(method,p,body){const r=await fetch(q(p),{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error((j.error&&j.error.message)||'erro');e.status=r.status;throw e}return j}
+const rnd=()=>Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('');
+const lsg=u=>{try{return JSON.parse(localStorage.getItem('la_req_'+u)||'null')}catch(e){return null}},lss=(u,v)=>{try{v?localStorage.setItem('la_req_'+u,JSON.stringify(v)):localStorage.removeItem('la_req_'+u)}catch(e){}};
+let CB=null,cbd='',cbt='',poll=null;
 const m=document.getElementById('m');
-function init(){let h=location.hash,o;
- try{if(h.indexOf('#ag=')!==0)throw 0;o=b64d(h.slice(4))}catch(e){m.innerHTML='<div class="empty" style="margin-top:80px">Link inválido.<br>Peça um novo link para a profissional.</div>';return}
- CB={n:o.n||'',w:o.w||'',t:o.t||[],g:o.g||'',d:{}};
- (o.d||[]).forEach(x=>{const q=x.split(':'),k=`20${q[0].slice(0,2)}-${q[0].slice(2,4)}-${q[0].slice(4,6)}`;if(k>=td)CB.d[k]=(q[1]||'').split(',').filter(Boolean).map(t=>t.slice(0,2)+':'+t.slice(2))});
- const ks=Object.keys(CB.d).sort();document.title='Agendar com '+CB.n;
+const msgErr=t=>{m.innerHTML=`<div class="empty" style="margin-top:80px">${t}</div>`};
+function parseAg(o){CB={n:o.n||'',w:o.w||'',t:o.t||[],g:o.g||'',d:{},online:false};
+ (o.d||[]).forEach(x=>{const k2=x.split(':'),k=`20${k2[0].slice(0,2)}-${k2[0].slice(2,4)}-${k2[0].slice(4,6)}`;if(k>=td)CB.d[k]=(k2[1]||'').split(',').filter(Boolean).map(t=>t.slice(0,2)+':'+t.slice(2))})}
+async function loadOnline(uid){const p=await fget('/pros/'+uid);if(!p)return false;const P=ud(p);
+ const sl=await fget(`/pros/${uid}/slots?pageSize=300`),bl=new Set();((sl&&sl.documents)||[]).forEach(d=>{const x=ud(d);if(x.st==='pending'||x.st==='ok')bl.add(d.name.split('/').pop())});
+ CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],g:td,d:{},online:true,uid};
+ (P.av||[]).forEach(k=>{const dt=kd(k);if(dt>=td&&!bl.has(k))(CB.d[dt]=CB.d[dt]||[]).push(kt(k))});Object.values(CB.d).forEach(a=>a.sort());return true}
+async function init(){const h=location.hash;
+ try{
+  if(h.indexOf('#ag=')===0){parseAg(b64d(h.slice(4)));build();return}
+  if(h.indexOf('#p=')===0){const uid=h.slice(3).replace(/[^A-Za-z0-9]/g,'');m.innerHTML='<div class="empty" style="margin-top:80px">Carregando horários...</div>';
+   const sv=lsg(uid);if(sv){await status(uid,sv.key,sv.rid,true);return}
+   if(!await loadOnline(uid)){msgErr('Link inválido.<br>Peça um novo link para a profissional.');return}build();return}
+  if(h.indexOf('#s=')===0){const t=h.slice(3).split('.');if(t.length!==3)throw 0;await status(t[0],t[1],t[2],false);return}
+  throw 0}catch(e){msgErr(h.indexOf('#p=')===0||h.indexOf('#s=')===0?'Não foi possível carregar agora.<br>Verifique sua internet e tente de novo.':'Link inválido.<br>Peça um novo link para a profissional.')}}
+function build(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.online;document.title='Agendar com '+CB.n;
  m.innerHTML=`<header><h1>Agendar horário</h1><div class="sub">com ${esc(CB.n)}</div></header><div class="f">
  <div class="fs">1 · Seus dados</div>
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
- <label>Seu WhatsApp (opcional)<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
+ <label>Seu WhatsApp${on?'':' (opcional)'}<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
  <label>Serviço<select id="cbs"><option value="">Ainda não sei / manutenção</option>${CB.t.map(t=>`<option>${esc(t)}</option>`).join('')}</select></label>
  <div class="fs">2 · Escolha o dia</div>
  ${ks.length?`<div class="cxs">${ks.map(k=>`<button type="button" class="cx" data-d="${k}"><small>${esc(wdn(k))}</small><b>${k.slice(8)}/${k.slice(5,7)}</b></button>`).join('')}</div>`:'<div class="empty">Nenhum horário disponível no momento.<br>Chame a profissional no WhatsApp.</div>'}
  <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
  <label>Observação (opcional)<textarea id="cbo" placeholder="Ex.: primeira vez, alergias..."></textarea></label>
  <div class="sum" id="sm"></div><div class="err" id="er"></div>
- <button type="button" class="pri" id="go">💬 Enviar pedido pelo WhatsApp</button>
- <div class="mut">Seu pedido segue para o WhatsApp da profissional, que confirma o horário com você. Horários atualizados em ${CB.g?CB.g.split('-').reverse().slice(0,2).join('/'):'—'}; se algum já tiver sido ocupado, ela avisa.</div></div>`}
+ <button type="button" class="pri" id="go">${on?'✅ Reservar este horário':'💬 Enviar pedido pelo WhatsApp'}</button>
+ <div class="mut">${on?'Seu horário fica reservado e a profissional confirma em seguida. Você acompanha a resposta aqui mesmo.':'Seu pedido segue para o WhatsApp da profissional, que confirma o horário com você. Horários atualizados em '+(CB.g?CB.g.split('-').reverse().slice(0,2).join('/'):'—')+'; se algum já tiver sido ocupado, ela avisa.'}</div></div>`}
 function sum(){const e=document.getElementById('sm');if(cbd&&cbt){e.style.display='block';e.innerHTML=`📅 ${esc(wdl(cbd))} às <b>${cbt}</b>`}else e.style.display='none'}
-function send(){const cl=id=>(document.getElementById(id).value||'').replace(/[|\[\]\n]/g,' ').trim(),nm=cl('cbn'),ph=cl('cbp'),sv=cl('cbs'),ob=(document.getElementById('cbo').value||'').trim(),er=document.getElementById('er');
- if(!nm){er.textContent='Digite seu nome.';return}if(!cbd||!cbt){er.textContent='Escolha o dia e o horário.';return}er.textContent='';
+const clean=id=>(document.getElementById(id).value||'').replace(/[|\[\]\n]/g,' ').trim();
+function send(){const nm=clean('cbn'),ph=clean('cbp'),sv=clean('cbs'),ob=(document.getElementById('cbo').value||'').trim(),er=document.getElementById('er');
+ if(!nm){er.textContent='Digite seu nome.';return}if(CB.online&&ph.replace(/\D/g,'').length<10){er.textContent='Digite seu WhatsApp com DDD para a profissional confirmar.';return}if(!cbd||!cbt){er.textContent='Escolha o dia e o horário.';return}er.textContent='';
+ if(CB.online){claim(nm,ph,sv,ob);return}
  const msg=`Oi, ${CB.n.split(' ')[0]}! Quero agendar um horário 💕\n\n👤 Nome: ${nm}\n📅 Dia: ${wdl(cbd)}\n⏰ Horário: ${cbt}${sv?'\n✨ Serviço: '+sv:''}${ph?'\n📱 Telefone: '+ph:''}${ob?'\n📝 Obs: '+ob:''}\n\n[LA:${cbd}|${cbt}|${nm}|${ph}|${sv}]`;
  location.href=`https://api.whatsapp.com/send?phone=${CB.w}&text=${encodeURIComponent(msg.normalize('NFC'))}`}
+async function claim(nm,ph,sv,ob){const er=document.getElementById('er'),b=document.getElementById('go'),key=cbd.replace(/-/g,'')+'_'+cbt.replace(':',''),rid=rnd(),u=CB.uid;
+ b.disabled=true;b.textContent='Reservando...';try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
+ try{const ex=await fget(`/pros/${u}/slots/${key}`);
+  if(!ex)await fsend('POST',`/pros/${u}/slots?documentId=${key}`,fsd({rid,st:'pending',ts:Date.now()}));
+  else{if(ud(ex).st!=='no')throw Object.assign(new Error('taken'),{status:409});
+   await fsend('PATCH',`/pros/${u}/slots/${key}?updateMask.fieldPaths=rid&updateMask.fieldPaths=st&updateMask.fieldPaths=ts&currentDocument.updateTime=${encodeURIComponent(ex.updateTime)}`,fsd({rid,st:'pending',ts:Date.now()}))}
+  await fsend('POST',`/pros/${u}/reqs?documentId=${rid}`,fsd({key,n:nm.slice(0,80),ph:ph.slice(0,30),sv:sv.slice(0,80),ob:ob.slice(0,300),ts:Date.now()}));
+  lss(u,{key,rid});await status(u,key,rid,false,true)}
+ catch(e){b.disabled=false;b.textContent='✅ Reservar este horário';
+  if(e.status===409||e.status===400||e.status===403||e.message==='taken'){er.textContent='Esse horário acabou de ser reservado por outra pessoa. Escolha outro.';try{await loadOnline(u);const n=clean('cbn'),p=clean('cbp');build();document.getElementById('cbn').value=n;document.getElementById('cbp').value=p}catch(x){}}
+  else er.textContent='Não foi possível reservar agora. Verifique sua internet e tente de novo.'}}
+async function status(uid,key,rid,fromLs,fresh){clearInterval(poll);let P={};try{const p=await fget('/pros/'+uid);if(p)P=ud(p)}catch(e){}
+ const link=location.href.split('#')[0]+'#s='+uid+'.'+key+'.'+rid;
+ m.innerHTML=`<header><h1>Seu pedido</h1><div class="sub">com ${esc(P.nm||'a profissional')}</div></header><div class="f"><div class="sum" id="stb" style="display:block">Verificando...</div>
+ <div class="mut" id="sth"></div>
+ <button type="button" class="pri" id="stn" style="display:none"></button>
+ ${P.wa?`<a class="sec2" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${esc(P.wa)}">💬 Falar com ${esc((P.nm||'a profissional').split(' ')[0])} no WhatsApp</a>`:''}
+ <div class="mut">Guarde este link para ver a resposta depois:<br><span id="stl" style="word-break:break-all">${esc(link)}</span></div>
+ <button type="button" class="sec2" id="stc">📋 Copiar link</button></div>`;
+ let last='';const tick=async()=>{let x=null;try{const d=await fget(`/pros/${uid}/slots/${key}`);x=d?ud(d):null}catch(e){return}
+  const b=document.getElementById('stb'),h=document.getElementById('sth'),n=document.getElementById('stn');if(!b)return;
+  const when=`📅 ${esc(wdl(kd(key)))} às <b>${kt(key)}</b>`;
+  if(!x||x.rid!==rid){b.innerHTML=when+'<br>Este horário não está mais reservado para você.';h.textContent='';n.style.display='block';n.textContent='Escolher outro horário';lss(uid,null);clearInterval(poll);last='gone';return}
+  if(x.st==='pending'){b.innerHTML='⏳ <b>Aguardando confirmação</b><br>'+when;h.textContent='O horário já está reservado para você. Esta tela atualiza sozinha quando a profissional responder.';n.style.display='block';n.textContent='Reservar outro horário'}
+  else if(x.st==='ok'){b.innerHTML='✅ <b>Horário confirmado!</b><br>'+when+'<br>Te esperamos! 💕';h.textContent='';clearInterval(poll);n.style.display='block';n.textContent='Fazer outro agendamento';lss(uid,null);
+   if(last==='pending'){try{if('Notification' in window&&Notification.permission==='granted')new Notification('Horário confirmado ✅',{body:wdl(kd(key))+' às '+kt(key)})}catch(e){}}}
+  else{b.innerHTML='✕ <b>Esse horário não pôde ser aceito</b><br>'+when;h.textContent='Escolha outro horário disponível.';clearInterval(poll);n.style.display='block';n.textContent='Escolher outro horário';lss(uid,null)}
+  last=x.st};
+ await tick();poll=setInterval(()=>{if(document.visibilityState==='visible')tick()},10000);
+ document.getElementById('stc').onclick=async function(){try{await navigator.clipboard.writeText(link);this.textContent='✅ Link copiado!'}catch(e){this.textContent='Selecione e copie o endereço acima'}};
+ document.getElementById('stn').onclick=async()=>{clearInterval(poll);lss(uid,null);m.innerHTML='<div class="empty" style="margin-top:80px">Carregando horários...</div>';try{if(await loadOnline(uid)){history.replaceState(null,'',location.pathname+'#p='+uid);build()}else msgErr('Link inválido.')}catch(e){msgErr('Não foi possível carregar agora.')}}}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));document.getElementById('tm').innerHTML=(CB.d[cbd]||[]).map(x=>`<button type="button" class="cx" data-t="${x}"><b>${x}</b></button>`).join('');sum()}
  else if(b.dataset.t){cbt=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===cbt));sum()}
  else if(b.id==='go')send()});
 document.addEventListener('input',e=>{if(e.target.id==='cbp'){const v=e.target.value;if(!/[a-zA-Z+]/.test(v)){const n=fmtPh(v);if(n!==v)e.target.value=n}}});
+addEventListener('hashchange',()=>location.reload());
 init();
 </script>
 </body>
