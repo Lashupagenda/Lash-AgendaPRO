@@ -36,7 +36,7 @@ textarea{min-height:76px;resize:vertical}
 <body>
 <main id="m"></main>
 <script>
-const FB_KEY='COLE_AQUI_A_API_KEY',FB_PID='COLE_AQUI_O_PROJECT_ID';
+const FB_KEY='AIzaSyBwH-6LSJRXK5Mj5C0ULFktoTL8srvyG2k',FB_PID='agendalashup';
 const FSU=`https://firestore.googleapis.com/v1/projects/${FB_PID}/databases/(default)/documents`;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -71,7 +71,7 @@ async function init(){const h=location.hash;
    const sv=lsg(uid);if(sv){await status(uid,sv.key,sv.rid,true);return}
    if(!await loadOnline(uid)){msgErr('Link inválido.<br>Peça um novo link para a profissional.');return}build();return}
   if(h.indexOf('#s=')===0){const t=h.slice(3).split('.');if(t.length!==3)throw 0;await status(t[0],t[1],t[2],false);return}
-  throw 0}catch(e){msgErr(h.indexOf('#p=')===0||h.indexOf('#s=')===0?'Não foi possível carregar agora.<br>Verifique sua internet e tente de novo.':'Link inválido.<br>Peça um novo link para a profissional.')}}
+  throw 0}catch(e){msgErr(h.indexOf('#p=')===0||h.indexOf('#s=')===0?'Não foi possível carregar agora.<br>Verifique sua internet e tente de novo.<br><small style="opacity:.6;font-size:11px">Detalhe: '+String((e&&e.message)||e).replace(/[<>&]/g,'').slice(0,160)+'</small>':'Link inválido.<br>Peça um novo link para a profissional.')}}
 function build(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.online;document.title='Agendar com '+CB.n;
  m.innerHTML=`<header><h1>Agendar horário</h1><div class="sub">com ${esc(CB.n)}</div></header><div class="f">
  <div class="fs">1 · Seus dados</div>
