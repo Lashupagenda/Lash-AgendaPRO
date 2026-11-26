@@ -4,14 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lash Agenda</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-512.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Lash Agenda">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#d9708f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -413,7 +405,7 @@ function bkSlots(){const b=BK(),out={},dur=+b.dur||150,s0=hm2m(b.st),e0=hm2m(b.e
  return out}
 const b64e=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,'+').replace(/_/g,'/')))));
-const BOOK_URL='https://SEU-ENDERECO.netlify.app/agendar.html';
+const BOOK_URL='https://lashupagenda.github.io/Lash-AgendaPRO/agendar.html';
 const bookOK=()=>!/SEU-ENDERECO/.test(BOOK_URL);
 function bkBase(){let u=((BK().base||'').trim()||(bookOK()?BOOK_URL:'')).replace(/#.*$/,'');if(!u)return'';if(!/^https?:\/\//i.test(u))u='https://'+u;if(!/\/$/.test(u)&&!/\.html?$/i.test(u))u+='/';return u}
 function bkLink(){const b=BK(),w0=String(b.wa||'').replace(/\D/g,''),u=bkBase();if(!u||!w0)return'';const d=bkSlots();
