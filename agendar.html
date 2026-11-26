@@ -60,10 +60,41 @@ const m=document.getElementById('m');
 const msgErr=t=>{m.innerHTML=`<div class="empty" style="margin-top:80px">${t}</div>`};
 function parseAg(o){CB={n:o.n||'',w:o.w||'',t:o.t||[],g:o.g||'',d:{},online:false};
  (o.d||[]).forEach(x=>{const k2=x.split(':'),k=`20${k2[0].slice(0,2)}-${k2[0].slice(2,4)}-${k2[0].slice(4,6)}`;if(k>=td)CB.d[k]=(k2[1]||'').split(',').filter(Boolean).map(t=>t.slice(0,2)+':'+t.slice(2))})}
+const chash=(u,p)=>{const t=u+':'+p;let a=0xdeadbeef,b=0x41c6ce57,c=0x9e3779b9,d=0x85ebca6b;for(let i=0;i<t.length;i++){const x=t.charCodeAt(i);a=Math.imul(a^x,2654435761);b=Math.imul(b^x,1597334677);c=Math.imul(c^x,2246822507);d=Math.imul(d^x,3266489909)}
+ a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);c=Math.imul(c^(c>>>16),2246822507)^Math.imul(d^(d>>>13),3266489909);d=Math.imul(d^(d>>>16),2246822507)^Math.imul(c^(c>>>13),3266489909);
+ return[a,b,c,d].map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')};
+const phKey=ph=>{let d=String(ph||'').replace(/\D/g,'');if(d.startsWith('55')&&d.length>11)d=d.slice(2);return d.length>=10?d:''};
+const KLb={ap:'Aplicação',m15:'Manutenção (15 dias)',m20:'Manutenção (20 dias)',m30:'Manutenção (30 dias)',m:'Manutenção'};
+const sugk=d=>d==null||d>30?'ap':d<=15?'m15':d<=20?'m20':'m30';
+const dtm=n=>String(Math.floor(n/60)).padStart(2,'0')+String(n%60).padStart(2,'0');
+const fmD=n=>Math.floor(n/60)+'h'+(n%60?String(n%60).padStart(2,'0'):'');
+function slotsOf(sl){return((sl&&sl.documents)||[]).map(d=>{const x=ud(d);return{key:d.name.split('/').pop(),st:x.st,du:+x.du||0}})}
+function computeCells(){const blk=new Set(),nw=new Date(),nm=nw.getHours()*60+nw.getMinutes();
+ CB.slots.forEach(x=>{if(x.st!=='pending'&&x.st!=='ok')return;const day=kd(x.key),s0=+x.key.slice(9,11)*60+ +x.key.slice(11),du=x.du>0?x.du:CB.dur;for(let q=s0;q<s0+du;q+=30)blk.add(day+'_'+dtm(q))});
+ CB.cells={};CB.av.forEach(k=>{const day=kd(k),hm=k.slice(9);if(day<td||blk.has(day+'_'+hm))return;if(day===td&&+hm.slice(0,2)*60+ +hm.slice(2)<=nm+60)return;(CB.cells[day]=CB.cells[day]||new Set()).add(hm)})}
 async function loadOnline(uid){const p=await fget('/pros/'+uid);if(!p)return false;const P=ud(p);
- const sl=await fget(`/pros/${uid}/slots?pageSize=300`),bl=new Set();((sl&&sl.documents)||[]).forEach(d=>{const x=ud(d);if(x.st==='pending'||x.st==='ok')bl.add(d.name.split('/').pop())});
- CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],g:td,d:{},online:true,uid};
- (P.av||[]).forEach(k=>{const dt=kd(k);if(dt>=td&&!bl.has(k))(CB.d[dt]=CB.d[dt]||[]).push(kt(k))});Object.values(CB.d).forEach(a=>a.sort());return true}
+ const sl=await fget(`/pros/${uid}/slots?pageSize=300`),old=CB&&CB.uid===uid?CB:null;
+ CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],tp:P.tp||[],dur:+P.dur||150,g:td,d:{},online:true,uid,av:P.av||[],slots:slotsOf(sl),known:old?old.known:null,kmap:old?old.kmap:{}};computeCells();return true}
+async function reloadSlots(){const sl=await fget(`/pros/${CB.uid}/slots?pageSize=300`);CB.slots=slotsOf(sl);computeCells()}
+function techDur(i,k){const p=String((CB.tp||[])[i]||'0|0').split('|'),v=+(k==='ap'?p[0]:p[1]);return v>0?v:CB.dur}
+function selTech(){const e=document.getElementById('cbs');return e&&e.value!==''?+e.value:-1}
+function curKind(day){if(CB.known){const dk=day.replace(/-/g,''),prev=(CB.known.d||[]).filter(x=>x<dk).sort().pop();if(!prev)return{k:'ap',days:null,known:true};const days=Math.round((new Date(day+'T00:00')-new Date(kd(prev+'_0000')+'T00:00'))/864e5);return{k:sugk(days),days,known:true}}
+ const e=document.getElementById('cbk');return{k:e&&e.value==='m'?'m':'ap',days:null,known:false}}
+function need(day){const kn=curKind(day),D=techDur(selTech(),kn.k==='ap'?'ap':'m');return{kn,D}}
+function validStarts(day){const set=CB.cells[day];if(!set)return[];const n=Math.ceil(need(day).D/30),out=[];
+ [...set].sort().forEach(hm=>{const s0=+hm.slice(0,2)*60+ +hm.slice(2);let ok=true;for(let j=1;j<n;j++)if(!set.has(dtm(s0+30*j))){ok=false;break}if(ok)out.push(hm.slice(0,2)+':'+hm.slice(2))});return out}
+function showInfo(){const e=document.getElementById('ki'),w=document.getElementById('kw');if(!e)return;if(w)w.style.display=CB.known?'none':'';
+ if(!cbd){e.innerHTML=CB.known?'💗 <b>Cliente cadastrada!</b> O tipo (aplicação ou manutenção) é calculado automaticamente pelo dia que você escolher.':'';return}
+ const{kn,D}=need(cbd);e.innerHTML=(CB.known?'💗 <b>Cliente cadastrada.</b> ':'')+'✨ <b>'+esc(KLb[kn.k])+'</b>'+(kn.days!=null?' · última visita há '+kn.days+' dia'+(kn.days===1?'':'s'):'')+' · ⏱ '+fmD(D)}
+function showTimes(){const tm=document.getElementById('tm');if(!tm)return;if(!cbd){tm.innerHTML='<span class="mut">Escolha um dia primeiro.</span>';showInfo();sum();return}
+ const vs=validStarts(cbd);if(!vs.includes(cbt))cbt='';tm.innerHTML=vs.length?vs.map(x=>`<button type="button" class="cx ${x===cbt?'on':''}" data-t="${x}"><b>${x}</b></button>`).join(''):'<span class="mut">Sem horário para este serviço neste dia.</span>';showInfo();sum()}
+function refresh(){const ds=document.getElementById('dys');if(!ds)return;const days=Object.keys(CB.cells).sort().filter(k=>validStarts(k).length);
+ ds.innerHTML=days.length?days.map(k=>`<button type="button" class="cx ${k===cbd?'on':''}" data-d="${k}"><small>${esc(wdn(k))}</small><b>${k.slice(8)}/${k.slice(5,7)}</b></button>`).join(''):'<div class="empty">Nenhum horário disponível para este serviço no momento.<br>Chame a profissional no WhatsApp.</div>';
+ if(cbd&&!days.includes(cbd))cbd='';showTimes()}
+let lkT;const lookupSoon=()=>{clearTimeout(lkT);lkT=setTimeout(lookup,450)};
+async function lookup(){const el=document.getElementById('cbp');if(!el||!CB||!CB.online)return;const p=phKey(el.value);if(!p){if(CB.known){CB.known=null;refresh()}return}
+ const h=chash(CB.uid,p);if(!(h in CB.kmap)){try{const d=await fget(`/pros/${CB.uid}/cl/${h}`);CB.kmap[h]=d?ud(d):null}catch(e){CB.kmap[h]=null}}
+ const e2=document.getElementById('cbp');if(e2&&phKey(e2.value)===p){CB.known=CB.kmap[h];refresh()}}
 async function init(){const h=location.hash;
  try{
   if(h.indexOf('#ag=')===0){parseAg(b64d(h.slice(4)));build();return}
@@ -72,7 +103,8 @@ async function init(){const h=location.hash;
    if(!await loadOnline(uid)){msgErr('Link inválido.<br>Peça um novo link para a profissional.');return}build();return}
   if(h.indexOf('#s=')===0){const t=h.slice(3).split('.');if(t.length!==3)throw 0;await status(t[0],t[1],t[2],false);return}
   throw 0}catch(e){msgErr(h.indexOf('#p=')===0||h.indexOf('#s=')===0?'Não foi possível carregar agora.<br>Verifique sua internet e tente de novo.<br><small style="opacity:.6;font-size:11px">Detalhe: '+String((e&&e.message)||e).replace(/[<>&]/g,'').slice(0,160)+'</small>':'Link inválido.<br>Peça um novo link para a profissional.')}}
-function build(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.online;document.title='Agendar com '+CB.n;
+function build(){return CB.online?buildOnline():buildLegacy()}
+function buildLegacy(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.online;document.title='Agendar com '+CB.n;
  m.innerHTML=`<header><h1>Agendar horário</h1><div class="sub">com ${esc(CB.n)}</div></header><div class="f">
  <div class="fs">1 · Seus dados</div>
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
@@ -85,19 +117,34 @@ function build(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.online;do
  <div class="sum" id="sm"></div><div class="err" id="er"></div>
  <button type="button" class="pri" id="go">${on?'✅ Reservar este horário':'💬 Enviar pedido pelo WhatsApp'}</button>
  <div class="mut">${on?'Seu horário fica reservado e a profissional confirma em seguida. Você acompanha a resposta aqui mesmo.':'Seu pedido segue para o WhatsApp da profissional, que confirma o horário com você. Horários atualizados em '+(CB.g?CB.g.split('-').reverse().slice(0,2).join('/'):'—')+'; se algum já tiver sido ocupado, ela avisa.'}</div></div>`}
+function buildOnline(){cbd='';cbt='';document.title='Agendar com '+CB.n;
+ m.innerHTML=`<header><h1>Agendar horário</h1><div class="sub">com ${esc(CB.n)}</div></header><div class="f">
+ <div class="fs">1 · Seus dados</div>
+ <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
+ <label>Seu WhatsApp<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
+ <div class="sum" id="ki" style="display:block;background:none;padding:0;color:var(--mut);font-size:13.5px"></div>
+ <label>Serviço<select id="cbs"><option value="">Ainda não sei</option>${CB.t.map((t,i)=>`<option value="${i}">${esc(t)}</option>`).join('')}</select></label>
+ <label id="kw">Tipo de atendimento<select id="cbk"><option value="ap">Aplicação (nova)</option><option value="m">Manutenção</option></select></label>
+ <div class="fs">2 · Escolha o dia</div><div class="cxs" id="dys"></div>
+ <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
+ <label>Observação (opcional)<textarea id="cbo" placeholder="Ex.: primeira vez, alergias..."></textarea></label>
+ <div class="sum" id="sm"></div><div class="err" id="er"></div>
+ <button type="button" class="pri" id="go">✅ Reservar este horário</button>
+ <div class="mut">Seu horário fica reservado e a profissional confirma em seguida. Você acompanha a resposta aqui mesmo.</div></div>`;refresh()}
 function sum(){const e=document.getElementById('sm');if(cbd&&cbt){e.style.display='block';e.innerHTML=`📅 ${esc(wdl(cbd))} às <b>${cbt}</b>`}else e.style.display='none'}
 const clean=id=>(document.getElementById(id).value||'').replace(/[|\[\]\n]/g,' ').trim();
-function send(){const nm=clean('cbn'),ph=clean('cbp'),sv=clean('cbs'),ob=(document.getElementById('cbo').value||'').trim(),er=document.getElementById('er');
+function send(){const nm=clean('cbn'),ph=clean('cbp'),so=document.getElementById('cbs'),sv=CB.online?(so.value===''?'':so.options[so.selectedIndex].text.replace(/[|\[\]\n]/g,' ').trim()):clean('cbs'),ob=(document.getElementById('cbo').value||'').trim(),er=document.getElementById('er');
  if(!nm){er.textContent='Digite seu nome.';return}if(CB.online&&ph.replace(/\D/g,'').length<10){er.textContent='Digite seu WhatsApp com DDD para a profissional confirmar.';return}if(!cbd||!cbt){er.textContent='Escolha o dia e o horário.';return}er.textContent='';
  if(CB.online){claim(nm,ph,sv,ob);return}
  const msg=`Oi, ${CB.n.split(' ')[0]}! Quero agendar um horário 💕\n\n👤 Nome: ${nm}\n📅 Dia: ${wdl(cbd)}\n⏰ Horário: ${cbt}${sv?'\n✨ Serviço: '+sv:''}${ph?'\n📱 Telefone: '+ph:''}${ob?'\n📝 Obs: '+ob:''}\n\n[LA:${cbd}|${cbt}|${nm}|${ph}|${sv}]`;
  location.href=`https://api.whatsapp.com/send?phone=${CB.w}&text=${encodeURIComponent(msg.normalize('NFC'))}`}
 async function claim(nm,ph,sv,ob){const er=document.getElementById('er'),b=document.getElementById('go'),key=cbd.replace(/-/g,'')+'_'+cbt.replace(':',''),rid=rnd(),u=CB.uid;
  b.disabled=true;b.textContent='Reservando...';try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
- try{const ex=await fget(`/pros/${u}/slots/${key}`);
-  if(!ex)await fsend('POST',`/pros/${u}/slots?documentId=${key}`,fsd({rid,st:'pending',ts:Date.now()}));
+ try{await reloadSlots();if(!validStarts(cbd).includes(cbt))throw Object.assign(new Error('taken'),{status:409});const{kn,D}=need(cbd);ob=('Tipo: '+KLb[kn.k]+(kn.days!=null?' (última visita há '+kn.days+' dias)':'')+(ob?'. '+ob:'')).slice(0,300);
+  const ex=await fget(`/pros/${u}/slots/${key}`);
+  if(!ex)await fsend('POST',`/pros/${u}/slots?documentId=${key}`,fsd({rid,st:'pending',ts:Date.now(),du:D}));
   else{if(ud(ex).st!=='no')throw Object.assign(new Error('taken'),{status:409});
-   await fsend('PATCH',`/pros/${u}/slots/${key}?updateMask.fieldPaths=rid&updateMask.fieldPaths=st&updateMask.fieldPaths=ts&currentDocument.updateTime=${encodeURIComponent(ex.updateTime)}`,fsd({rid,st:'pending',ts:Date.now()}))}
+   await fsend('PATCH',`/pros/${u}/slots/${key}?updateMask.fieldPaths=rid&updateMask.fieldPaths=st&updateMask.fieldPaths=ts&updateMask.fieldPaths=du&currentDocument.updateTime=${encodeURIComponent(ex.updateTime)}`,fsd({rid,st:'pending',ts:Date.now(),du:D}))}
   await fsend('POST',`/pros/${u}/reqs?documentId=${rid}`,fsd({key,n:nm.slice(0,80),ph:ph.slice(0,30),sv:sv.slice(0,80),ob:ob.slice(0,300),ts:Date.now()}));
   lss(u,{key,rid});await status(u,key,rid,false,true)}
  catch(e){b.disabled=false;b.textContent='✅ Reservar este horário';
@@ -124,10 +171,12 @@ async function status(uid,key,rid,fromLs,fresh){clearInterval(poll);let P={};try
  document.getElementById('stc').onclick=async function(){try{await navigator.clipboard.writeText(link);this.textContent='✅ Link copiado!'}catch(e){this.textContent='Selecione e copie o endereço acima'}};
  document.getElementById('stn').onclick=async()=>{clearInterval(poll);lss(uid,null);m.innerHTML='<div class="empty" style="margin-top:80px">Carregando horários...</div>';try{if(await loadOnline(uid)){history.replaceState(null,'',location.pathname+'#p='+uid);build()}else msgErr('Link inválido.')}catch(e){msgErr('Não foi possível carregar agora.')}}}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
- if(b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));document.getElementById('tm').innerHTML=(CB.d[cbd]||[]).map(x=>`<button type="button" class="cx" data-t="${x}"><b>${x}</b></button>`).join('');sum()}
+ if(CB&&CB.online&&b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));showTimes()}
+ else if(b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));document.getElementById('tm').innerHTML=(CB.d[cbd]||[]).map(x=>`<button type="button" class="cx" data-t="${x}"><b>${x}</b></button>`).join('');sum()}
  else if(b.dataset.t){cbt=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===cbt));sum()}
  else if(b.id==='go')send()});
-document.addEventListener('input',e=>{if(e.target.id==='cbp'){const v=e.target.value;if(!/[a-zA-Z+]/.test(v)){const n=fmtPh(v);if(n!==v)e.target.value=n}}});
+document.addEventListener('change',e=>{if(CB&&CB.online&&(e.target.id==='cbs'||e.target.id==='cbk'))refresh()});
+document.addEventListener('input',e=>{if(e.target.id==='cbp'){if(CB&&CB.online)lookupSoon();const v=e.target.value;if(!/[a-zA-Z+]/.test(v)){const n=fmtPh(v);if(n!==v)e.target.value=n}}});
 addEventListener('hashchange',()=>location.reload());
 init();
 </script>
