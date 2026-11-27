@@ -70,9 +70,10 @@ const phKey=ph=>{let d=String(ph||'').replace(/\D/g,'');if(d.startsWith('55')&&d
 const MTK=['m15','m20','m30'],mtv=()=>(CB&&CB.mt)||[15,20,30],noMt=()=>mtv().every(v=>!(+v>0));
 const PFL={lash:['Aplicação','Manutenção','nova'],both:['Aplicação','Manutenção','nova'],tattoo:['Sessão','Retoque','nova'],other:['Atendimento','Retorno','novo']},pfl=()=>PFL[CB&&CB.pf]||PFL.lash;
 const svOpts=(idx)=>(CB.t||[]).map((x,i)=>idx?`<option value="${i}">${esc(x)}</option>`:`<option>${esc(x)}</option>`).join('');
-const svPicker=()=>{const t=CB.t||[],tc=CB.tc||[],L=[],T=[],P=[];t.forEach((x,i)=>(tc[i]==='t'?T:tc[i]==='p'?P:L).push(i));
- const b=i=>`<button type="button" class="svo" data-sv="${i}"><i></i>${esc(t[i])}</button>`,g=(n,a)=>a.length?`<div class="svg">${n}</div>${a.map(b).join('')}`:'';
- return `<div class="svp"><button type="button" class="svo on" data-sv=""><i></i>Ainda não sei${CB.online?'':' / manutenção'}</button>${[L,T,P].filter(a=>a.length).length>1?g('✨ Cílios',L)+g('🖋️ Tatuagem',T)+g('💎 Body piercing',P):t.map((x,i)=>b(i)).join('')}</div>`};
+const exHtml=()=>(CB.ex||[]).length?`<div id="exw" style="display:flex;flex-direction:column;gap:12px"><div class="fs" style="margin-top:10px">Adicionais (opcional)</div>${CB.ex.map((e,i)=>`<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:15px"><input type="checkbox" class="cbx" value="${i}" style="width:auto">${esc(e.n)}${e.p>0?' <span class="mut">(+R$ '+String(e.p).replace('.',',')+')</span>':''}</label>`).join('')}</div>`:'',kwHtml=()=>`<label id="kw">Tipo de atendimento<select id="cbk"><option value="ap">${pfl()[0]} (${pfl()[2]})</option><option value="m">${pfl()[1]}</option></select></label>`;
+const svPicker=(xtra)=>{const t=CB.t||[],tc=CB.tc||[],L=[],T=[],P=[];t.forEach((x,i)=>(tc[i]==='t'?T:tc[i]==='p'?P:L).push(i));
+ const b=i=>`<button type="button" class="svo" data-sv="${i}"><i></i>${esc(t[i])}</button>`,g=(n,a,x)=>a.length?`<div class="svg">${n}</div>${a.map(b).join('')}${x||''}`:'';
+ return `<div class="svp"><button type="button" class="svo on" data-sv=""><i></i>Ainda não sei${CB.online?'':' / manutenção'}</button>${[L,T,P].filter(a=>a.length).length>1?g('✨ Cílios',L,xtra)+g('🖋️ Tatuagem',T)+g('💎 Body piercing',P):t.map((x,i)=>b(i)).join('')+(xtra||'')}</div>`};
 function pickSv(b){const i=b.dataset.sv,sel=document.getElementById('cbs');sel.value=i===''?'':(CB.online?i:CB.t[+i]);document.querySelectorAll('[data-sv]').forEach(x=>x.classList.toggle('on',x===b));sel.dispatchEvent(new Event('change',{bubbles:true}))}
 const KLb=new Proxy({},{get:(o,k)=>{if(k==='ap')return pfl()[0];const i=MTK.indexOf(k),v=i>=0?+mtv()[i]:0;return v>0?pfl()[1]+' ('+v+' dias)':pfl()[1]}});
 const sugk=d=>{if(d==null)return'ap';const m=mtv();for(let i=0;i<3;i++)if(+m[i]>0&&d<=+m[i])return MTK[i];return'ap'};
@@ -134,9 +135,7 @@ function buildOnline(){cbd='';cbt='';document.title='Agendar com '+CB.n;
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
  <label>Seu WhatsApp<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
  <div class="sum" id="ki" style="display:block;background:none;padding:0;color:var(--mut);font-size:13.5px"></div>
- <div class="lbl">Serviço</div>${svPicker()}<select id="cbs" hidden><option value="">-</option>${svOpts(true)}</select>
- ${(CB.ex||[]).length?`<div id="exw" style="display:flex;flex-direction:column;gap:12px"><div class="fs" style="margin-top:0">Adicionais (opcional)</div>${CB.ex.map((e,i)=>`<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:15px"><input type="checkbox" class="cbx" value="${i}" style="width:auto">${esc(e.n)}${e.p>0?' <span class="mut">(+R$ '+String(e.p).replace('.',',')+')</span>':''}</label>`).join('')}</div>`:''}
- <label id="kw">Tipo de atendimento<select id="cbk"><option value="ap">${pfl()[0]} (${pfl()[2]})</option><option value="m">${pfl()[1]}</option></select></label>
+ <div class="lbl">Serviço</div>${svPicker(exHtml()+kwHtml())}<select id="cbs" hidden><option value="">-</option>${svOpts(true)}</select>
  <div class="fs">2 · Escolha o dia</div><div class="cxs" id="dys"></div>
  <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
  <label>Observação (opcional)<textarea id="cbo" placeholder="Ex.: primeira vez, alergias..."></textarea></label>
