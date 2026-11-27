@@ -30,6 +30,9 @@ textarea{min-height:76px;resize:vertical}
 .err{color:var(--acc2);font-size:14px}
 .pri{border:0;border-radius:16px;padding:15px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font:600 16px inherit;font-family:inherit;cursor:pointer}
 .sec2{display:block;text-align:center;text-decoration:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:13px;font:500 15px inherit;font-family:inherit;cursor:pointer}
+.lbl{font-size:13px;color:var(--mut);margin-bottom:-6px}
+.svp{display:flex;flex-direction:column;gap:6px}.svg{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--acc2);margin-top:8px}
+.svo{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit;font-size:15px;cursor:pointer}.svo i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);flex:none}.svo.on{border-color:var(--acc);background:var(--tint)}.svo.on i{border-color:var(--acc2);background:radial-gradient(var(--acc2) 45%,transparent 50%)}
 .mut{color:var(--mut);font-size:12.5px}.empty{text-align:center;color:var(--mut);padding:24px 10px}
 </style>
 </head>
@@ -58,14 +61,21 @@ const lsg=u=>{try{return JSON.parse(localStorage.getItem('la_req_'+u)||'null')}c
 let CB=null,cbd='',cbt='',poll=null;
 const m=document.getElementById('m');
 const msgErr=t=>{m.innerHTML=`<div class="empty" style="margin-top:80px">${t}</div>`};
-function parseAg(o){CB={n:o.n||'',w:o.w||'',t:o.t||[],g:o.g||'',d:{},online:false};
+function parseAg(o){CB={n:o.n||'',w:o.w||'',t:o.t||[],tc:o.tc||[],g:o.g||'',d:{},online:false};
  (o.d||[]).forEach(x=>{const k2=x.split(':'),k=`20${k2[0].slice(0,2)}-${k2[0].slice(2,4)}-${k2[0].slice(4,6)}`;if(k>=td)CB.d[k]=(k2[1]||'').split(',').filter(Boolean).map(t=>t.slice(0,2)+':'+t.slice(2))})}
 const chash=(u,p)=>{const t=u+':'+p;let a=0xdeadbeef,b=0x41c6ce57,c=0x9e3779b9,d=0x85ebca6b;for(let i=0;i<t.length;i++){const x=t.charCodeAt(i);a=Math.imul(a^x,2654435761);b=Math.imul(b^x,1597334677);c=Math.imul(c^x,2246822507);d=Math.imul(d^x,3266489909)}
  a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);c=Math.imul(c^(c>>>16),2246822507)^Math.imul(d^(d>>>13),3266489909);d=Math.imul(d^(d>>>16),2246822507)^Math.imul(c^(c>>>13),3266489909);
  return[a,b,c,d].map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')};
 const phKey=ph=>{let d=String(ph||'').replace(/\D/g,'');if(d.startsWith('55')&&d.length>11)d=d.slice(2);return d.length>=10?d:''};
-const KLb={ap:'Aplicação',m15:'Manutenção (15 dias)',m20:'Manutenção (20 dias)',m30:'Manutenção (30 dias)',m:'Manutenção'};
-const sugk=d=>d==null||d>30?'ap':d<=15?'m15':d<=20?'m20':'m30';
+const MTK=['m15','m20','m30'],mtv=()=>(CB&&CB.mt)||[15,20,30],noMt=()=>mtv().every(v=>!(+v>0));
+const PFL={lash:['Aplicação','Manutenção','nova'],both:['Aplicação','Manutenção','nova'],tattoo:['Sessão','Retoque','nova'],other:['Atendimento','Retorno','novo']},pfl=()=>PFL[CB&&CB.pf]||PFL.lash;
+const svOpts=(idx)=>(CB.t||[]).map((x,i)=>idx?`<option value="${i}">${esc(x)}</option>`:`<option>${esc(x)}</option>`).join('');
+const svPicker=()=>{const t=CB.t||[],tc=CB.tc||[],L=[],T=[];t.forEach((x,i)=>(tc[i]==='t'?T:L).push(i));
+ const b=i=>`<button type="button" class="svo" data-sv="${i}"><i></i>${esc(t[i])}</button>`,g=(n,a)=>a.length?`<div class="svg">${n}</div>${a.map(b).join('')}`:'';
+ return `<div class="svp"><button type="button" class="svo on" data-sv=""><i></i>Ainda não sei${CB.online?'':' / manutenção'}</button>${L.length&&T.length?g('✨ Cílios',L)+g('🖋️ Tatuagem',T):t.map((x,i)=>b(i)).join('')}</div>`};
+function pickSv(b){const i=b.dataset.sv,sel=document.getElementById('cbs');sel.value=i===''?'':(CB.online?i:CB.t[+i]);document.querySelectorAll('[data-sv]').forEach(x=>x.classList.toggle('on',x===b));sel.dispatchEvent(new Event('change',{bubbles:true}))}
+const KLb=new Proxy({},{get:(o,k)=>{if(k==='ap')return pfl()[0];const i=MTK.indexOf(k),v=i>=0?+mtv()[i]:0;return v>0?pfl()[1]+' ('+v+' dias)':pfl()[1]}});
+const sugk=d=>{if(d==null)return'ap';const m=mtv();for(let i=0;i<3;i++)if(+m[i]>0&&d<=+m[i])return MTK[i];return'ap'};
 const dtm=n=>String(Math.floor(n/60)).padStart(2,'0')+String(n%60).padStart(2,'0');
 const fmD=n=>Math.floor(n/60)+'h'+(n%60?String(n%60).padStart(2,'0'):'');
 function slotsOf(sl){return((sl&&sl.documents)||[]).map(d=>{const x=ud(d);return{key:d.name.split('/').pop(),st:x.st,du:+x.du||0}})}
@@ -74,18 +84,19 @@ function computeCells(){const blk=new Set(),nw=new Date(),nm=nw.getHours()*60+nw
  CB.cells={};CB.av.forEach(k=>{const day=kd(k),hm=k.slice(9);if(day<td||blk.has(day+'_'+hm))return;if(day===td&&+hm.slice(0,2)*60+ +hm.slice(2)<=nm+60)return;(CB.cells[day]=CB.cells[day]||new Set()).add(hm)})}
 async function loadOnline(uid){const p=await fget('/pros/'+uid);if(!p)return false;const P=ud(p);
  const sl=await fget(`/pros/${uid}/slots?pageSize=300`),old=CB&&CB.uid===uid?CB:null;
- CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],tp:P.tp||[],dur:+P.dur||150,g:td,d:{},online:true,uid,av:P.av||[],slots:slotsOf(sl),known:old?old.known:null,kmap:old?old.kmap:{}};computeCells();return true}
+ CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],tp:P.tp||[],mt:(P.mt&&P.mt.length===3)?P.mt:[15,20,30],pf:P.pf||'lash',tc:P.tc||[],ex:(P.ex||[]).map(x=>{const i=x.lastIndexOf('|');return{n:x.slice(0,i),p:+x.slice(i+1)||0}}),dur:+P.dur||150,g:td,d:{},online:true,uid,av:P.av||[],slots:slotsOf(sl),known:old?old.known:null,kmap:old?old.kmap:{}};computeCells();return true}
 async function reloadSlots(){const sl=await fget(`/pros/${CB.uid}/slots?pageSize=300`);CB.slots=slotsOf(sl);computeCells()}
 function techDur(i,k){const p=String((CB.tp||[])[i]||'0|0').split('|'),v=+(k==='ap'?p[0]:p[1]);return v>0?v:CB.dur}
+const isTT=()=>{const e=document.getElementById('cbs'),i=e&&e.value!==''?+e.value:-1;return i>=0&&(CB.tc||[])[i]==='t'};
 function selTech(){const e=document.getElementById('cbs');return e&&e.value!==''?+e.value:-1}
-function curKind(day){if(CB.known){const dk=day.replace(/-/g,''),prev=(CB.known.d||[]).filter(x=>x<dk).sort().pop();if(!prev)return{k:'ap',days:null,known:true};const days=Math.round((new Date(day+'T00:00')-new Date(kd(prev+'_0000')+'T00:00'))/864e5);return{k:sugk(days),days,known:true}}
+function curKind(day){if(isTT())return{k:'ap',days:null,known:!!CB.known};if(noMt())return{k:'ap',days:null,known:!!CB.known};if(CB.known){const dk=day.replace(/-/g,''),prev=(CB.known.d||[]).filter(x=>x<dk).sort().pop();if(!prev)return{k:'ap',days:null,known:true};const days=Math.round((new Date(day+'T00:00')-new Date(kd(prev+'_0000')+'T00:00'))/864e5);return{k:sugk(days),days,known:true}}
  const e=document.getElementById('cbk');return{k:e&&e.value==='m'?'m':'ap',days:null,known:false}}
 function need(day){const kn=curKind(day),D=techDur(selTech(),kn.k==='ap'?'ap':'m');return{kn,D}}
 function validStarts(day){const set=CB.cells[day];if(!set)return[];const n=Math.ceil(need(day).D/30),out=[];
  [...set].sort().forEach(hm=>{const s0=+hm.slice(0,2)*60+ +hm.slice(2);let ok=true;for(let j=1;j<n;j++)if(!set.has(dtm(s0+30*j))){ok=false;break}if(ok)out.push(hm.slice(0,2)+':'+hm.slice(2))});return out}
-function showInfo(){const e=document.getElementById('ki'),w=document.getElementById('kw');if(!e)return;if(w)w.style.display=CB.known?'none':'';
+function showInfo(){const e=document.getElementById('ki'),w=document.getElementById('kw'),xw=document.getElementById('exw');if(!e)return;if(xw)xw.style.display=isTT()?'none':'flex';if(w)w.style.display=(CB.known||noMt()||isTT())?'none':'';
  if(!cbd){e.innerHTML=CB.known?'💗 <b>Cliente cadastrada!</b> O tipo (aplicação ou manutenção) é calculado automaticamente pelo dia que você escolher.':'';return}
- const{kn,D}=need(cbd);e.innerHTML=(CB.known?'💗 <b>Cliente cadastrada.</b> ':'')+'✨ <b>'+esc(KLb[kn.k])+'</b>'+(kn.days!=null?' · última visita há '+kn.days+' dia'+(kn.days===1?'':'s'):'')+' · ⏱ '+fmD(D)}
+ const{kn,D}=need(cbd);e.innerHTML=(CB.known?'💗 <b>Cliente cadastrada.</b> ':'')+'✨ <b>'+esc(isTT()?'Sessão':KLb[kn.k])+'</b>'+(kn.days!=null?' · última visita há '+kn.days+' dia'+(kn.days===1?'':'s'):'')+' · ⏱ '+fmD(D)}
 function showTimes(){const tm=document.getElementById('tm');if(!tm)return;if(!cbd){tm.innerHTML='<span class="mut">Escolha um dia primeiro.</span>';showInfo();sum();return}
  const vs=validStarts(cbd);if(!vs.includes(cbt))cbt='';tm.innerHTML=vs.length?vs.map(x=>`<button type="button" class="cx ${x===cbt?'on':''}" data-t="${x}"><b>${x}</b></button>`).join(''):'<span class="mut">Sem horário para este serviço neste dia.</span>';showInfo();sum()}
 function refresh(){const ds=document.getElementById('dys');if(!ds)return;const days=Object.keys(CB.cells).sort().filter(k=>validStarts(k).length);
@@ -109,7 +120,7 @@ function buildLegacy(){cbd='';cbt='';const ks=Object.keys(CB.d).sort(),on=CB.onl
  <div class="fs">1 · Seus dados</div>
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
  <label>Seu WhatsApp${on?'':' (opcional)'}<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
- <label>Serviço<select id="cbs"><option value="">Ainda não sei / manutenção</option>${CB.t.map(t=>`<option>${esc(t)}</option>`).join('')}</select></label>
+ <div class="lbl">Serviço</div>${svPicker()}<select id="cbs" hidden><option value="">-</option>${svOpts(false)}</select>
  <div class="fs">2 · Escolha o dia</div>
  ${ks.length?`<div class="cxs">${ks.map(k=>`<button type="button" class="cx" data-d="${k}"><small>${esc(wdn(k))}</small><b>${k.slice(8)}/${k.slice(5,7)}</b></button>`).join('')}</div>`:'<div class="empty">Nenhum horário disponível no momento.<br>Chame a profissional no WhatsApp.</div>'}
  <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
@@ -123,8 +134,9 @@ function buildOnline(){cbd='';cbt='';document.title='Agendar com '+CB.n;
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
  <label>Seu WhatsApp<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
  <div class="sum" id="ki" style="display:block;background:none;padding:0;color:var(--mut);font-size:13.5px"></div>
- <label>Serviço<select id="cbs"><option value="">Ainda não sei</option>${CB.t.map((t,i)=>`<option value="${i}">${esc(t)}</option>`).join('')}</select></label>
- <label id="kw">Tipo de atendimento<select id="cbk"><option value="ap">Aplicação (nova)</option><option value="m">Manutenção</option></select></label>
+ <div class="lbl">Serviço</div>${svPicker()}<select id="cbs" hidden><option value="">-</option>${svOpts(true)}</select>
+ ${(CB.ex||[]).length?`<div id="exw" style="display:flex;flex-direction:column;gap:12px"><div class="fs" style="margin-top:0">Adicionais (opcional)</div>${CB.ex.map((e,i)=>`<label style="flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:15px"><input type="checkbox" class="cbx" value="${i}" style="width:auto">${esc(e.n)}${e.p>0?' <span class="mut">(+R$ '+String(e.p).replace('.',',')+')</span>':''}</label>`).join('')}</div>`:''}
+ <label id="kw">Tipo de atendimento<select id="cbk"><option value="ap">${pfl()[0]} (${pfl()[2]})</option><option value="m">${pfl()[1]}</option></select></label>
  <div class="fs">2 · Escolha o dia</div><div class="cxs" id="dys"></div>
  <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
  <label>Observação (opcional)<textarea id="cbo" placeholder="Ex.: primeira vez, alergias..."></textarea></label>
@@ -140,7 +152,7 @@ function send(){const nm=clean('cbn'),ph=clean('cbp'),so=document.getElementById
  location.href=`https://api.whatsapp.com/send?phone=${CB.w}&text=${encodeURIComponent(msg.normalize('NFC'))}`}
 async function claim(nm,ph,sv,ob){const er=document.getElementById('er'),b=document.getElementById('go'),key=cbd.replace(/-/g,'')+'_'+cbt.replace(':',''),rid=rnd(),u=CB.uid;
  b.disabled=true;b.textContent='Reservando...';try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
- try{await reloadSlots();if(!validStarts(cbd).includes(cbt))throw Object.assign(new Error('taken'),{status:409});const{kn,D}=need(cbd);ob=('Tipo: '+KLb[kn.k]+(kn.days!=null?' (última visita há '+kn.days+' dias)':'')+(ob?'. '+ob:'')).slice(0,300);
+ try{await reloadSlots();if(!validStarts(cbd).includes(cbt))throw Object.assign(new Error('taken'),{status:409});const{kn,D}=need(cbd);const xs=isTT()?'':[...document.querySelectorAll('.cbx:checked')].map(i=>CB.ex[+i.value].n.replace(/[;|\n]/g,' ')).join('; ');ob=('Tipo: '+(isTT()?'Sessão':KLb[kn.k])+(kn.days!=null?' (última visita há '+kn.days+' dias)':'')+(xs?'. Adicionais: '+xs:'')+(ob?'. '+ob:'')).slice(0,300);
   const ex=await fget(`/pros/${u}/slots/${key}`);
   if(!ex)await fsend('POST',`/pros/${u}/slots?documentId=${key}`,fsd({rid,st:'pending',ts:Date.now(),du:D}));
   else{if(ud(ex).st!=='no')throw Object.assign(new Error('taken'),{status:409});
@@ -171,7 +183,8 @@ async function status(uid,key,rid,fromLs,fresh){clearInterval(poll);let P={};try
  document.getElementById('stc').onclick=async function(){try{await navigator.clipboard.writeText(link);this.textContent='✅ Link copiado!'}catch(e){this.textContent='Selecione e copie o endereço acima'}};
  document.getElementById('stn').onclick=async()=>{clearInterval(poll);lss(uid,null);m.innerHTML='<div class="empty" style="margin-top:80px">Carregando horários...</div>';try{if(await loadOnline(uid)){history.replaceState(null,'',location.pathname+'#p='+uid);build()}else msgErr('Link inválido.')}catch(e){msgErr('Não foi possível carregar agora.')}}}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
- if(CB&&CB.online&&b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));showTimes()}
+ if(b.dataset.sv!==undefined){pickSv(b)}
+ else if(CB&&CB.online&&b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));showTimes()}
  else if(b.dataset.d){cbd=b.dataset.d;cbt='';document.querySelectorAll('[data-d]').forEach(x=>x.classList.toggle('on',x.dataset.d===cbd));document.getElementById('tm').innerHTML=(CB.d[cbd]||[]).map(x=>`<button type="button" class="cx" data-t="${x}"><b>${x}</b></button>`).join('');sum()}
  else if(b.dataset.t){cbt=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===cbt));sum()}
  else if(b.id==='go')send()});
