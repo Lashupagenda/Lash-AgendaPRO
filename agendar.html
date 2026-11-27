@@ -70,9 +70,9 @@ const phKey=ph=>{let d=String(ph||'').replace(/\D/g,'');if(d.startsWith('55')&&d
 const MTK=['m15','m20','m30'],mtv=()=>(CB&&CB.mt)||[15,20,30],noMt=()=>mtv().every(v=>!(+v>0));
 const PFL={lash:['Aplicação','Manutenção','nova'],both:['Aplicação','Manutenção','nova'],tattoo:['Sessão','Retoque','nova'],other:['Atendimento','Retorno','novo']},pfl=()=>PFL[CB&&CB.pf]||PFL.lash;
 const svOpts=(idx)=>(CB.t||[]).map((x,i)=>idx?`<option value="${i}">${esc(x)}</option>`:`<option>${esc(x)}</option>`).join('');
-const svPicker=()=>{const t=CB.t||[],tc=CB.tc||[],L=[],T=[];t.forEach((x,i)=>(tc[i]==='t'?T:L).push(i));
+const svPicker=()=>{const t=CB.t||[],tc=CB.tc||[],L=[],T=[],P=[];t.forEach((x,i)=>(tc[i]==='t'?T:tc[i]==='p'?P:L).push(i));
  const b=i=>`<button type="button" class="svo" data-sv="${i}"><i></i>${esc(t[i])}</button>`,g=(n,a)=>a.length?`<div class="svg">${n}</div>${a.map(b).join('')}`:'';
- return `<div class="svp"><button type="button" class="svo on" data-sv=""><i></i>Ainda não sei${CB.online?'':' / manutenção'}</button>${L.length&&T.length?g('✨ Cílios',L)+g('🖋️ Tatuagem',T):t.map((x,i)=>b(i)).join('')}</div>`};
+ return `<div class="svp"><button type="button" class="svo on" data-sv=""><i></i>Ainda não sei${CB.online?'':' / manutenção'}</button>${[L,T,P].filter(a=>a.length).length>1?g('✨ Cílios',L)+g('🖋️ Tatuagem',T)+g('💎 Body piercing',P):t.map((x,i)=>b(i)).join('')}</div>`};
 function pickSv(b){const i=b.dataset.sv,sel=document.getElementById('cbs');sel.value=i===''?'':(CB.online?i:CB.t[+i]);document.querySelectorAll('[data-sv]').forEach(x=>x.classList.toggle('on',x===b));sel.dispatchEvent(new Event('change',{bubbles:true}))}
 const KLb=new Proxy({},{get:(o,k)=>{if(k==='ap')return pfl()[0];const i=MTK.indexOf(k),v=i>=0?+mtv()[i]:0;return v>0?pfl()[1]+' ('+v+' dias)':pfl()[1]}});
 const sugk=d=>{if(d==null)return'ap';const m=mtv();for(let i=0;i<3;i++)if(+m[i]>0&&d<=+m[i])return MTK[i];return'ap'};
@@ -87,7 +87,7 @@ async function loadOnline(uid){const p=await fget('/pros/'+uid);if(!p)return fal
  CB={n:P.nm||'',w:P.wa||'',t:P.techs||[],tp:P.tp||[],mt:(P.mt&&P.mt.length===3)?P.mt:[15,20,30],pf:P.pf||'lash',tc:P.tc||[],ex:(P.ex||[]).map(x=>{const i=x.lastIndexOf('|');return{n:x.slice(0,i),p:+x.slice(i+1)||0}}),dur:+P.dur||150,g:td,d:{},online:true,uid,av:P.av||[],slots:slotsOf(sl),known:old?old.known:null,kmap:old?old.kmap:{}};computeCells();return true}
 async function reloadSlots(){const sl=await fget(`/pros/${CB.uid}/slots?pageSize=300`);CB.slots=slotsOf(sl);computeCells()}
 function techDur(i,k){const p=String((CB.tp||[])[i]||'0|0').split('|'),v=+(k==='ap'?p[0]:p[1]);return v>0?v:CB.dur}
-const isTT=()=>{const e=document.getElementById('cbs'),i=e&&e.value!==''?+e.value:-1;return i>=0&&(CB.tc||[])[i]==='t'};
+const isTT=()=>{const e=document.getElementById('cbs'),i=e&&e.value!==''?+e.value:-1;return i>=0&&['t','p'].includes((CB.tc||[])[i])};
 function selTech(){const e=document.getElementById('cbs');return e&&e.value!==''?+e.value:-1}
 function curKind(day){if(isTT())return{k:'ap',days:null,known:!!CB.known};if(noMt())return{k:'ap',days:null,known:!!CB.known};if(CB.known){const dk=day.replace(/-/g,''),prev=(CB.known.d||[]).filter(x=>x<dk).sort().pop();if(!prev)return{k:'ap',days:null,known:true};const days=Math.round((new Date(day+'T00:00')-new Date(kd(prev+'_0000')+'T00:00'))/864e5);return{k:sugk(days),days,known:true}}
  const e=document.getElementById('cbk');return{k:e&&e.value==='m'?'m':'ap',days:null,known:false}}
