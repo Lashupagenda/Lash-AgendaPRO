@@ -135,7 +135,8 @@ function buildOnline(){cbd='';cbt='';document.title='Agendar com '+CB.n;
  <label>Seu nome<input id="cbn" autocomplete="name" placeholder="Nome completo"></label>
  <label>Seu WhatsApp<input id="cbp" type="tel" inputmode="tel" placeholder="(27) 99999-9999"></label>
  <div class="sum" id="ki" style="display:block;background:none;padding:0;color:var(--mut);font-size:13.5px"></div>
- <div class="lbl">Serviço</div>${svPicker(exHtml()+kwHtml())}<select id="cbs" hidden><option value="">-</option>${svOpts(true)}</select>
+ ${kwHtml()}
+ <div class="lbl">Serviço</div>${svPicker(exHtml())}<select id="cbs" hidden><option value="">-</option>${svOpts(true)}</select>
  <div class="fs">2 · Escolha o dia</div><div class="cxs" id="dys"></div>
  <div class="fs">3 · Escolha o horário</div><div class="cxs" id="tm"><span class="mut">Escolha um dia primeiro.</span></div>
  <label>Observação (opcional)<textarea id="cbo" placeholder="Ex.: primeira vez, alergias..."></textarea></label>
